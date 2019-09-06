@@ -242,7 +242,10 @@ class ezpaextype extends eZDataType
 
                     // if audit is enabled password changes should be logged
                     $targetUser = eZUser::fetch( $contentObjectID );
-                    eZAudit::writeAudit( 'user-password-change', array( 'User id' => $targetUser->attribute( 'contentobject_id' ), 'User login' => $targetUser->attribute( 'login' ) ) );
+                    if ( $targetUser instanceof eZUser )
+                    {
+                        eZAudit::writeAudit('user-password-change', array('User id' => $targetUser->attribute('contentobject_id'), 'User login' => $targetUser->attribute('login')));
+                    }
                 }
                 // Password has changed, reset expirationnotification_sent flag to send again a notification when this new password be about to expire
                 $expirationnotificationSent = 0;
