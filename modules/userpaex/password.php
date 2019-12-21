@@ -104,8 +104,20 @@ if ( $http->hasPostVariable( "OKButton" ) && $user)
                         // if audit is enabled password changes should be logged
                         eZAudit::writeAudit( 'user-password-change-self', array( 'UserID: ' => $UserID, 'Login: ' => $login ) );
 
-                        $user->setAttribute( "password_hash", $newHash );
-                        $user->store();
+                        if ( eZOperationHandler::operationIsAvailable( 'user_password' ) )
+                        {
+                            $operationResult = eZOperationHandler::execute( 'user',
+                                'password', array( 
+                                    'user_id'    => $user->id(),
+                                    'new_password'  => $newPassword 
+                                ) 
+                            );
+                        }
+                        else
+                        {
+                            eZUserOperationCollection::password( $user->id(), $newPassword );
+                        }
+
                         $paex->resetPasswordLastUpdated();
                         $oldPassword = '';
 
