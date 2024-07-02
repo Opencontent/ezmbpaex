@@ -17,6 +17,7 @@ $oldPasswordNotValid = 0;
 $newPasswordNotMatch = 0;
 $newPasswordTooShort = 0;
 $newPasswordNotValidate = 0;
+$newPasswordValidationMessage = '';
 $newPasswordMustDiffer = 0;
 $userRedirectURI = '';
 
@@ -85,14 +86,15 @@ if ( $http->hasPostVariable( "OKButton" ) && $user)
                 {
                     // if audit is enabled password changes should be logged
                     eZAudit::writeAudit( 'user-password-change-self-fail', array( 'UserID: ' => $UserID, 'Login: ' => $login,
-                                                                                  'Comment: ' => 'Password not pass PAEX validation' ) );
+                                                                                  'Comment: ' => eZPaEx::getLastValidationError() ) );
                     $newPasswordNotValidate = 1;
+                    $newPasswordValidationMessage = eZPaEx::getLastValidationError();
                 }
                 else
                 {
                     $oldHash = $user->createHash( $login, $oldPassword, $site, $type );
                     $newHash = $user->createHash( $login, $newPassword, $site, $type );
-                    if ($oldHash == $newHash)
+                    if ($oldHash == $newHash || $oldPassword == $newPassword)
                     {
                         // if audit is enabled password changes should be logged
                         eZAudit::writeAudit( 'user-password-change-self-fail', array( 'UserID: ' => $UserID, 'Login: ' => $login,
@@ -182,6 +184,7 @@ $tpl->setVariable( "oldPasswordNotValid", $oldPasswordNotValid );
 $tpl->setVariable( "newPasswordNotMatch", $newPasswordNotMatch );
 $tpl->setVariable( "newPasswordTooShort", $newPasswordTooShort );
 $tpl->setVariable( "newPasswordNotValidate", $newPasswordNotValidate );
+$tpl->setVariable( "newPasswordValidationMessage", $newPasswordValidationMessage );
 $tpl->setVariable( "newPasswordMustDiffer", $newPasswordMustDiffer );
 $tpl->setVariable( "message", $message );
 
@@ -193,7 +196,7 @@ $Result['path'] = array( array( 'text' => ezpI18n::tr( 'kernel/user', 'User' ),
 $Result['content'] = $tpl->fetch( "design:userpaex/password.tpl" );
 
 $currentuser = eZUser::currentUser();
-if ( !$currentuser->isLoggedIn() )
+if ( !$currentuser->isRegistered() )
 {
    if ( $ini->variable( 'SiteSettings', 'LoginPage' ) == 'custom' )
    {

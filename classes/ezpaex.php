@@ -11,6 +11,8 @@ class eZPaEx extends eZPersistentObject
 {
     const NOT_DEFINED = -1;
 
+    private static $lastValidationError;
+
     function __construct( $row )
     {
         parent::__construct( $row );
@@ -96,7 +98,7 @@ class eZPaEx extends eZPersistentObject
             'expirationnotification' => $iniExpirationNotification,
             'password_last_updated' => 0,
             'updatechildren' => self::NOT_DEFINED,
-            'expirationnotification_sent' => 0
+            'expirationnotification_sent' => 0,
             );
 
         return new eZPaEx( $row );
@@ -151,7 +153,7 @@ class eZPaEx extends eZPersistentObject
 	 * @param int $id contentobject_id to fetch
 	 * @param bool $asObject	return the PO as an object or as an array
      *
-	 * @return eZPaEx as PO or array
+	 * @return array|eZPersistentObject|null as PO or array
 	 */
 	static function fetch( $id, $asObject = true )
     {
@@ -167,7 +169,7 @@ class eZPaEx extends eZPersistentObject
 	/**
 	 * Check if the password in the current paex object is expired
      *
-     * @return true if the difference between today and password_last_updated date is
+     * @return boolean true if the difference between today and password_last_updated date is
      *         greater than the value set in passwordlifetime
 	 */
 	function isExpired()
@@ -212,7 +214,7 @@ class eZPaEx extends eZPersistentObject
 	/**
 	 * Check if validation regexp is defined or not
      *
-	 * @return true/false
+	 * @return boolean true/false
   	 */
 	function hasRegexp()
 	{
@@ -266,19 +268,53 @@ class eZPaEx extends eZPersistentObject
 	*/
     function validatePassword( $password )
     {
-        eZDebug::writeDebug( 'Validate Password Start','eZPaEx::validatePassword' );
+        eZDebug::writeDebug( 'Validate Password Start',__METHOD__ );
         if ( $this->hasRegexp() && ( $password != '_ezpassword' ) )
         {
             $regexp = preg_replace( array('/(^\/)/', '/(\/$)/'), '', $this->attribute( 'passwordvalidationregexp' ) );
             if ( !preg_match( '/' . $regexp . '/', $password ) )
             {
-                eZDebug::writeDebug( 'Password KO', 'eZPaEx::validatePassword' );
+                eZDebug::writeDebug( 'Password KO', __METHOD__ );
                 return false;
             }
         }
-        eZDebug::writeDebug( 'Password OK', 'eZPaEx::validatePassword' );
+
+        $validators = (array)eZINI::instance('mbpaex.ini')->variable('mbpaexSettings', 'PasswordValidators');
+        foreach ($validators as $validatorClass) {
+            if (class_exists($validatorClass)) {
+                $validator = new $validatorClass();
+                if ($validator instanceof eZPaExValidatorInterface) {
+                    try {
+                        eZDebug::writeDebug('Validate with ' . $validatorClass, __METHOD__);
+                        if (!$validator->validate($password)){
+                            eZDebug::writeDebug( "Password validation with $validatorClass KO", __METHOD__ );
+                            return false;
+                        }
+                    } catch (eZPaExValidatorException $e) {
+                        self::$lastValidationError = $e->getMessage();
+                        eZDebug::writeDebug("Password validation with $validatorClass KO: " . $e->getMessage(), __METHOD__);
+                        return false;
+                    }
+                } else {
+                    eZDebug::writeError(
+                        "Password validator $validatorClass does not implements eZPaExValidatorInterface",
+                        __METHOD__
+                    );
+                }
+            } else {
+                eZDebug::writeError("Password validator $validatorClass class not found", __METHOD__);
+            }
+        }
+
+        eZDebug::writeDebug( 'Password OK', __METHOD__ );
 
         return true;
+    }
+
+
+    public static function getLastValidationError(): ?string
+    {
+        return self::$lastValidationError;
     }
 
     /**
@@ -345,7 +381,7 @@ class eZPaEx extends eZPersistentObject
     /**
      * Check if current user has permissions to edit the paex data
      *
-     * @return true if the user has editpaex policy, false if not.
+     * @return boolean true if the user has editpaex policy, false if not.
      */
     public static function canEdit()
     {
@@ -362,7 +398,7 @@ class eZPaEx extends eZPersistentObject
     /**
      * Generate array of paex objects to update based on updatechildren status
      *
-     * @param array $paex_to_update     Array of already updated paex objects
+     * @param array $paexToUpdate     Array of already updated paex objects
      * @return array of paex objects to update, with final values set.
      */
     function generateUpdateChildren( $paexToUpdate = array() )
@@ -403,7 +439,7 @@ class eZPaEx extends eZPersistentObject
                 }
                 else
                 {
-                    eZDebug::writeDebug( 'Skipping object ' . $add_paex_to_update['contentobject_id'] , __METHOD__ );
+                    eZDebug::writeDebug( 'Skipping object ' . $node['contentobject_id'] , __METHOD__ );
                 }
             }
         }
@@ -415,7 +451,7 @@ class eZPaEx extends eZPersistentObject
     /**
      * Check if children update is pending
      *
-     * @return true if updatechildren is set to 1 (pending update)
+     * @return boolean true if updatechildren is set to 1 (pending update)
     */
     function isUpdateChildrenPending()
     {
@@ -430,7 +466,7 @@ class eZPaEx extends eZPersistentObject
      * parent of current main node.
      *
      * @param bool $forceUpdate
-     * @return true
+     * @return boolean true
     */
     function updateFromParent( $forceUpdate = false )
     {
@@ -518,7 +554,7 @@ class eZPaEx extends eZPersistentObject
      * Send password expiry notification to user
      *
      * @param eZUser $user ezuser object that contains the destination email address
-     * @return true if notification sent correctly, false if not.
+     * @return boolean true if notification sent correctly, false if not.
      */
     function sendExpiryNotification( $user )
     {
@@ -622,5 +658,3 @@ class eZPaEx extends eZPersistentObject
         return ( $db->query( "SELECT * FROM ezx_mbpaex" ) !== false );
     }
 }
-
-?>

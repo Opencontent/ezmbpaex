@@ -165,7 +165,7 @@ else if ( $module->isCurrentAction( "ChangePassword" ) && $hashKeyValidated )
     $hash = $user->attribute( "password_hash" );
     $site = $user->site();
 
-    if (  $newPassword ==  $confirmPassword )
+    if (  $newPassword == $confirmPassword )
     {
         if ( !$user->validatePassword($newPassword) ) // Password must meet "old" validation rules
         {
@@ -183,9 +183,10 @@ else if ( $module->isCurrentAction( "ChangePassword" ) && $hashKeyValidated )
             {
                 // if audit is enabled password changes should be logged
                 eZAudit::writeAudit( 'user-forgotpassword-fail', array( 'UserID' => $UserID, 'Login' => $login,
-                                                                        'Comment: ' => 'Password not pass PAEX validation' ) );
+                                                                        'Comment: ' => eZPaEx::getLastValidationError() ) );
 
                 $tpl->setVariable( 'newPasswordNotValidate', true);
+                $tpl->setVariable( 'newPasswordValidationMessage', eZPaEx::getLastValidationError());
             }
             else
             {
@@ -207,6 +208,7 @@ else if ( $module->isCurrentAction( "ChangePassword" ) && $hashKeyValidated )
                     $user->setAttribute( "password_hash", $newHash );
                     $user->store();
                     $paex->resetPasswordLastUpdated();
+                    eZUser::setFailedLoginAttempts( $user->attribute( 'contentobject_id' ), 0 );
 
                     $forgotPasswdObj->remove();
                     $tpl->setVariable( 'password_changed', true);
