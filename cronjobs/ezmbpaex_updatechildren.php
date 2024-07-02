@@ -17,7 +17,7 @@ if ( !trim( $updateChildrenUser ) )
 $user = eZUser::fetchByName( $updateChildrenUser );
 eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'contentobject_id' ) );
 
-if ( $user->isLoggedIn() )
+if ( $user->isRegistered() )
 {
     $cli->output( "eZPaEx: Update children process start" );
 
