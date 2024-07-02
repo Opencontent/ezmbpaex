@@ -4,6 +4,9 @@ class HaveIBeenPwned implements eZPaExValidatorInterface
 {
     private const BASE_URI = 'https://api.pwnedpasswords.com';
 
+    /**
+     * @throws eZPaExValidatorException
+     */
     public function validate(string $password): bool
     {
         if ($this->countPwnedPassword($password) > 0) {
@@ -19,14 +22,14 @@ class HaveIBeenPwned implements eZPaExValidatorInterface
 
     private function countPwnedPassword(string $password): int
     {
-        $hashedPassword = \strtoupper(\sha1($password));
-        $firstFiveCharacters = \substr($hashedPassword, 0, 5);
+        $hashedPassword = strtoupper(sha1($password));
+        $firstFiveCharacters = substr($hashedPassword, 0, 5);
         $hashes = $this->request('/range/' . $firstFiveCharacters);
 
         foreach ($hashes as $line) {
             if (false !== strpos($line, ':')) {
-                [$hash, $count] = \explode(':', $line);
-                if ($firstFiveCharacters . \strtoupper($hash) === $hashedPassword) {
+                list($hash, $count) = explode(':', $line);
+                if ($firstFiveCharacters . strtoupper($hash) === $hashedPassword) {
                     return (int)$count;
                 }
             }
@@ -35,7 +38,7 @@ class HaveIBeenPwned implements eZPaExValidatorInterface
         return 0;
     }
 
-    private function request($path)
+    private function request($path): array
     {
         $url = self::BASE_URI . $path;
         $headers = [];
@@ -69,10 +72,11 @@ class HaveIBeenPwned implements eZPaExValidatorInterface
         }
 
         if (intval($info['http_code']) > 299) {
-            throw new \Exception("$url: Reponse code is " . $info['http_code'] . ' ' . json_encode($data));
+            eZDebug::writeError("$url: Response is " . $info['http_code'] . ' ' . $data, __METHOD__);
+            return [];
         }
 
-        $hashes = \str_replace("\r\n", \PHP_EOL, $body);
-        return \explode(\PHP_EOL, $hashes);
+        $hashes = str_replace("\r\n", PHP_EOL, $body);
+        return explode(PHP_EOL, $hashes);
     }
 }
