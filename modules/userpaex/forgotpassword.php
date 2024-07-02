@@ -183,9 +183,10 @@ else if ( $module->isCurrentAction( "ChangePassword" ) && $hashKeyValidated )
             {
                 // if audit is enabled password changes should be logged
                 eZAudit::writeAudit( 'user-forgotpassword-fail', array( 'UserID' => $UserID, 'Login' => $login,
-                                                                        'Comment: ' => 'Password not pass PAEX validation' ) );
+                                                                        'Comment: ' => eZPaEx::getLastValidationError() ) );
 
                 $tpl->setVariable( 'newPasswordNotValidate', true);
+                $tpl->setVariable( 'newPasswordValidationMessage', eZPaEx::getLastValidationError());
             }
             else
             {

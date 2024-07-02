@@ -26,7 +26,11 @@
             {/if}
             {if $newPasswordNotValidate}
                 <div class="warning">
-                    <h2>{"The new password is invalid, please choose new one."|i18n('mbpaex/userpaex/forgotpassword')}</h2>
+                    {if and(is_set($newPasswordValidationMessage), $newPasswordValidationMessage|ne(''))}
+                        <h2>{$newPasswordValidationMessage}</h2>
+                    {else}
+                        <h2>{"The new password is invalid, please choose new one."|i18n('mbpaex/userpaex/forgotpassword')}</h2>
+                    {/if}
                 </div>
             {/if}
             {if $newPasswordMustDiffer}

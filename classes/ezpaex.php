@@ -11,6 +11,8 @@ class eZPaEx extends eZPersistentObject
 {
     const NOT_DEFINED = -1;
 
+    private static $lastValidationError;
+
     function __construct( $row )
     {
         parent::__construct( $row );
@@ -96,7 +98,7 @@ class eZPaEx extends eZPersistentObject
             'expirationnotification' => $iniExpirationNotification,
             'password_last_updated' => 0,
             'updatechildren' => self::NOT_DEFINED,
-            'expirationnotification_sent' => 0
+            'expirationnotification_sent' => 0,
             );
 
         return new eZPaEx( $row );
@@ -276,9 +278,43 @@ class eZPaEx extends eZPersistentObject
                 return false;
             }
         }
+
+        $validators = (array)eZINI::instance('mbpaex.ini')->variable('mbpaexSettings', 'PasswordValidators');
+        foreach ($validators as $validatorClass) {
+            if (class_exists($validatorClass)) {
+                $validator = new $validatorClass();
+                if ($validator instanceof eZPaExValidatorInterface) {
+                    try {
+                        eZDebug::writeDebug('Validate with ' . $validatorClass, 'eZPaEx::validatePassword');
+                        if (!$validator->validate($password)){
+                            eZDebug::writeDebug( "Password validation with $validatorClass KO", 'eZPaEx::validatePassword' );
+                            return false;
+                        }
+                    } catch (eZPaExValidatorException $e) {
+                        self::$lastValidationError = $e->getMessage();
+                        eZDebug::writeDebug($e->getMessage(), 'eZPaEx::validatePassword');
+                        return false;
+                    }
+                } else {
+                    eZDebug::writeDebug(
+                        "Password validator $validatorClass does not implements eZPaExValidatorInterface",
+                        'eZPaEx::validatePassword'
+                    );
+                }
+            } else {
+                eZDebug::writeDebug("Password validator $validatorClass class not found", 'eZPaEx::validatePassword');
+            }
+        }
+
         eZDebug::writeDebug( 'Password OK', 'eZPaEx::validatePassword' );
 
         return true;
+    }
+
+
+    public static function getLastValidationError(): ?string
+    {
+        return self::$lastValidationError;
     }
 
     /**

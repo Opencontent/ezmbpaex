@@ -356,4 +356,11 @@
         <translation>Questo link è valido fino a %1, dopo questo termine dovrai generarne un&apos;altra.</translation>
     </message>
 </context>
+<context>
+    <name>mbpaex/validation</name>
+    <message>
+        <source>This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!</source>
+        <translation>La password è apparsa in passato in un database di violazione dei dati e non deve mai essere utilizzata. Se l'avete già usata da qualche parte prima, cambiatela!</translation>
+    </message>
+</context>
 </TS>

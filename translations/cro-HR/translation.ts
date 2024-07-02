@@ -356,4 +356,11 @@
         <translation>Ovaj link je ispravan do %1, nakon toga morate generirati novu lozinku.</translation>
     </message>
 </context>
+<context>
+    <name>mbpaex/validation</name>
+    <message>
+        <source>This password has previously appeared in a data breach and should never be used. If you've ever used it anywhere before, change it!</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
 </TS>
